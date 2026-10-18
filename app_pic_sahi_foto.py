@@ -54,7 +54,7 @@ st.sidebar.header("🔧 Einstellungen")
 
 use_sahi = st.sidebar.checkbox(
     "SAHI aktivieren (Slicing)",
-    value=True
+    value=False
 )
 
 slice_size = st.sidebar.slider(
