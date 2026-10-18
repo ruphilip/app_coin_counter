@@ -1,0 +1,11 @@
+[project]
+name = "app-coin-counter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "sahi>=0.12.8",
+    "streamlit>=1.66.0",
+    "ultralytics>=8.4.182",
+]
