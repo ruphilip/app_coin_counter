@@ -1,11 +1,7 @@
-import os
 import streamlit as st
+import torch
 from PIL import Image
-import numpy as np
-
-# --- SAHI IMPORTS ---
-from sahi import AutoDetectionModel
-from sahi.predict import get_sliced_prediction
+from ultralytics import YOLO
 
 
 # ============================================================
@@ -13,22 +9,24 @@ from sahi.predict import get_sliced_prediction
 # ============================================================
 
 st.set_page_config(
-    page_title="YOLOv8 + SAHI Münzzähler",
+    page_title="YOLOv8 Münzzähler",
     layout="centered"
 )
 
-st.title("🪙 YOLOv8 + SAHI Münzzähler")
+st.title("🪙 YOLOv8 Münzzähler")
 st.write(
     "Lade ein Bild hoch oder fotografiere Münzen direkt mit der Kamera."
 )
 
 
 # ============================================================
-# 2. MODELL
+# 2. MODELL & GERÄT
 # ============================================================
 
 MODEL_PATH = "best.pt"
 
+# MPS (Apple Silicon) wenn verfügbar, sonst CPU
+DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 
 
 # ============================================================
@@ -52,27 +50,6 @@ COIN_VALUES = {
 
 st.sidebar.header("🔧 Einstellungen")
 
-use_sahi = st.sidebar.checkbox(
-    "SAHI aktivieren (Slicing)",
-    value=False
-)
-
-slice_size = st.sidebar.slider(
-    "Kachelgröße (Slice Size)",
-    min_value=128,
-    max_value=640,
-    value=256,
-    step=32
-)
-
-overlap_ratio = st.sidebar.slider(
-    "Überlappung (Overlap Ratio)",
-    min_value=0.0,
-    max_value=0.5,
-    value=0.2,
-    step=0.05
-)
-
 conf_threshold = st.sidebar.slider(
     "Konfidenz-Schwellenwert",
     min_value=0.1,
@@ -87,30 +64,15 @@ conf_threshold = st.sidebar.slider(
 # ============================================================
 
 @st.cache_resource
-def load_sahi_model(model_path, conf_thresh):
-
-    return AutoDetectionModel.from_pretrained(
-        model_type="ultralytics",
-        model_path=model_path,
-        confidence_threshold=conf_thresh,
-        device="mps"
-    )
+def load_model(model_path):
+    return YOLO(model_path)
 
 
 try:
-    sahi_model = load_sahi_model(
-        MODEL_PATH,
-        conf_threshold
-    )
-
+    model = load_model(MODEL_PATH)
     st.success("✅ Modell erfolgreich geladen!")
-
 except Exception as e:
-
-    st.error(
-        f"❌ Fehler beim Laden des Modells: {e}"
-    )
-
+    st.error(f"❌ Fehler beim Laden des Modells: {e}")
     st.stop()
 
 
@@ -122,38 +84,19 @@ st.subheader("📷 Bild auswählen")
 
 input_method = st.radio(
     "Wie möchtest du das Bild bereitstellen?",
-    [
-        "📁 Bild hochladen",
-        "📷 Foto aufnehmen"
-    ],
+    ["📁 Bild hochladen", "📷 Foto aufnehmen"],
     horizontal=True
 )
 
-
 uploaded_file = None
 
-
-# ------------------------------------------------------------
-# OPTION 1: BILD HOCHLADEN
-# ------------------------------------------------------------
-
 if input_method == "📁 Bild hochladen":
-
     uploaded_file = st.file_uploader(
         "Wähle ein Bild aus...",
         type=["jpg", "jpeg", "png"]
     )
-
-
-# ------------------------------------------------------------
-# OPTION 2: FOTO AUFNEHMEN
-# ------------------------------------------------------------
-
 else:
-
-    uploaded_file = st.camera_input(
-        "📷 Münzen fotografieren"
-    )
+    uploaded_file = st.camera_input("📷 Münzen fotografieren")
 
 
 # ============================================================
@@ -162,127 +105,34 @@ else:
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert("RGB")
 
     st.divider()
 
     col1, col2 = st.columns(2)
 
-
-    # ========================================================
-    # ORIGINALBILD
-    # ========================================================
-
     with col1:
-
         st.subheader("Originalbild")
-
-        st.image(
-            image,
-            use_container_width=True
-        )
-
-
-    # ========================================================
-    # OBJEKTERKENNUNG
-    # ========================================================
+        st.image(image, use_container_width=True)
 
     with col2:
+        st.subheader("Objekterkennung")
 
-        st.subheader("Objektkennung")
+        with st.spinner("🔍 Modell analysiert das Bild..."):
+            results = model.predict(
+                source=image,
+                device=DEVICE,
+                conf=conf_threshold
+            )
 
-        with st.spinner(
-            "🔍 Modell analysiert das Bild..."
-        ):
+            res = results[0]
 
-            img_np = np.array(image)
+            # plot() liefert ein BGR-Array -> in RGB umkehren
+            res_image = Image.fromarray(res.plot()[..., ::-1])
 
+            st.image(res_image, use_container_width=True)
 
-            # =================================================
-            # SAHI
-            # =================================================
-
-            if use_sahi:
-
-                sahi_result = get_sliced_prediction(
-                    image=img_np,
-                    detection_model=sahi_model,
-                    slice_height=slice_size,
-                    slice_width=slice_size,
-                    overlap_height_ratio=overlap_ratio,
-                    overlap_width_ratio=overlap_ratio
-                )
-
-
-                # Temporärer Ausgabeordner
-
-                export_dir = "./tmp_sahi"
-
-                os.makedirs(
-                    export_dir,
-                    exist_ok=True
-                )
-
-
-                # Visualisierung speichern
-
-                sahi_result.export_visuals(
-                    export_dir=export_dir,
-                    file_name="result",
-                    text_size=1,
-                    rect_th=2
-                )
-
-
-                result_path = (
-                    f"{export_dir}/result.png"
-                )
-
-
-                res_image = Image.open(
-                    result_path
-                )
-
-
-                st.image(
-                    res_image,
-                    use_container_width=True
-                )
-
-
-                detections = (
-                    sahi_result.object_prediction_list
-                )
-
-
-            # =================================================
-            # NORMALES YOLO
-            # =================================================
-
-            else:
-
-                pure_yolo = sahi_model.model
-
-                results = pure_yolo.predict(
-                    source=image,
-                    device="mps",
-                    conf=conf_threshold
-                )
-
-                res = results[0]
-
-                res_plotted = res.plot()
-
-                res_image = Image.fromarray(
-                    res_plotted[..., ::-1]
-                )
-
-                st.image(
-                    res_image,
-                    use_container_width=True
-                )
-
-                detections = res.boxes
+            detections = res.boxes
 
 
     # ========================================================
@@ -290,130 +140,42 @@ if uploaded_file is not None:
     # ========================================================
 
     st.divider()
-
-    st.subheader(
-        "📊 Auswertung & Gesamtsumme"
-    )
-
+    st.subheader("📊 Auswertung & Gesamtsumme")
 
     total_amount = 0.0
-
     detected_coins_summary = {}
 
-
-    # ========================================================
-    # KEINE MÜNZEN
-    # ========================================================
-
     if len(detections) == 0:
-
-        st.info(
-            "Keine Münzen erkannt."
-        )
-
-
-    # ========================================================
-    # MÜNZEN GEFUNDEN
-    # ========================================================
+        st.info("Keine Münzen erkannt.")
 
     else:
+        for box in detections:
+            class_id = int(box.cls[0])
+            class_name = model.names[class_id]
 
-        # ----------------------------------------------------
-        # SAHI
-        # ----------------------------------------------------
+            detected_coins_summary[class_name] = (
+                detected_coins_summary.get(class_name, 0) + 1
+            )
 
-        if use_sahi:
-
-            for det in detections:
-
-                class_name = det.category.name
-
-                detected_coins_summary[class_name] = (
-                    detected_coins_summary.get(
-                        class_name,
-                        0
-                    ) + 1
-                )
-
-                total_amount += COIN_VALUES.get(
-                    class_name,
-                    0.0
-                )
-
-
-        # ----------------------------------------------------
-        # YOLO
-        # ----------------------------------------------------
-
-        else:
-
-            for box in detections:
-
-                class_id = int(
-                    box.cls[0]
-                )
-
-                class_name = (
-                    sahi_model.model.names[
-                        class_id
-                    ]
-                )
-
-                detected_coins_summary[class_name] = (
-                    detected_coins_summary.get(
-                        class_name,
-                        0
-                    ) + 1
-                )
-
-                total_amount += COIN_VALUES.get(
-                    class_name,
-                    0.0
-                )
-
-
-        # ====================================================
-        # GESAMTBETRAG
-        # ====================================================
+            total_amount += COIN_VALUES.get(class_name, 0.0)
 
         st.metric(
             label="💰 Erkannter Gesamtbetrag",
             value=f"{total_amount:.2f} Fr."
         )
 
-
-        # ====================================================
-        # DETAILAUFLISTUNG
-        # ====================================================
-
-        st.write(
-            "**Aufteilung der erkannten Münzen:**"
-        )
-
+        st.write("**Aufteilung der erkannten Münzen:**")
 
         for coin, count in detected_coins_summary.items():
-
-            single_value = COIN_VALUES.get(
-                coin,
-                0.0
-            )
-
-            subtotal = (
-                single_value * count
-            )
-
+            single_value = COIN_VALUES.get(coin, 0.0)
+            subtotal = single_value * count
 
             if single_value > 0:
-
                 st.write(
-                    f"• **{count}x** {coin} "
-                    f"(Wert: {subtotal:.2f} Fr.)"
+                    f"• **{count}x** {coin} (Wert: {subtotal:.2f} Fr.)"
                 )
-
             else:
-
                 st.write(
                     f"• **{count}x** {coin} "
-                    f"*(Klasse nicht im "
-                    f"COIN_VALUES Dictionary definiert!)*"
+                    f"*(Klasse nicht im COIN_VALUES Dictionary definiert!)*"
                 )
