@@ -9,11 +9,11 @@ from ultralytics import YOLO
 # ============================================================
 
 st.set_page_config(
-    page_title="YOLOv8 Münzzähler",
+    page_title="YOLO Münzzähler",
     layout="centered"
 )
 
-st.title("🪙 YOLOv8 Münzzähler")
+st.title("🪙 YOLO Münzzähler")
 st.write(
     "Lade ein Bild hoch oder fotografiere Münzen direkt mit der Kamera."
 )
@@ -25,8 +25,13 @@ st.write(
 
 MODEL_PATH = "best.pt"
 
-# MPS (Apple Silicon) wenn verfügbar, sonst CPU
-DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
+# CUDA wenn verfügbar, sonst MPS (Apple Silicon) wenn verfügbar, sonst CPU
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+elif torch.backends.mps.is_available():
+    DEVICE = "mps"
+else:
+    DEVICE = "cpu"
 
 
 # ============================================================
@@ -56,6 +61,16 @@ conf_threshold = st.sidebar.slider(
     max_value=1.0,
     value=0.25,
     step=0.05
+)
+
+iou_threshold = st.sidebar.slider(
+    "Überlappungs-Schwellenwert (IoU)",
+    min_value=0.1,
+    max_value=1.0,
+    value=0.7,
+    step=0.05,
+    help="Ab dieser Überlappung wird nur die Box mit der höheren Konfidenz behalten. "
+         "Kleiner = aggressiveres Entfernen."
 )
 
 
@@ -122,7 +137,10 @@ if uploaded_file is not None:
             results = model.predict(
                 source=image,
                 device=DEVICE,
-                conf=conf_threshold
+                conf=conf_threshold,
+                iou=iou_threshold,
+                agnostic_nms=True,
+                verbose=False
             )
 
             res = results[0]
@@ -149,13 +167,17 @@ if uploaded_file is not None:
         st.info("Keine Münzen erkannt.")
 
     else:
+        detected_coins_summary = {}
+        confidences = {}  # Klasse -> Liste der Konfidenzen
         for box in detections:
             class_id = int(box.cls[0])
             class_name = model.names[class_id]
+            conf = float(box.conf[0])
 
             detected_coins_summary[class_name] = (
                 detected_coins_summary.get(class_name, 0) + 1
             )
+            confidences.setdefault(class_name, []).append(conf)
 
             total_amount += COIN_VALUES.get(class_name, 0.0)
 
@@ -170,9 +192,15 @@ if uploaded_file is not None:
             single_value = COIN_VALUES.get(coin, 0.0)
             subtotal = single_value * count
 
+            coin_confs = confidences[coin]
+            avg_conf = sum(coin_confs) / len(coin_confs)
+            conf_list = ", ".join(f"{c:.0%}" for c in coin_confs)
+
             if single_value > 0:
                 st.write(
-                    f"• **{count}x** {coin} (Wert: {subtotal:.2f} Fr.)"
+                    f"• **{count}x** {coin} (Wert: {subtotal:.2f} Fr.) "
+                    f"– Ø Konfidenz: **{avg_conf:.0%}** "
+                    f"*(einzeln: {conf_list})*"
                 )
             else:
                 st.write(
