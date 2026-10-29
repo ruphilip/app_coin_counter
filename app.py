@@ -3,7 +3,6 @@ import torch
 from PIL import Image
 from ultralytics import YOLO
 
-
 # ============================================================
 # 1. STREAMLIT APP
 # ============================================================
@@ -86,7 +85,7 @@ def load_model(model_path):
 try:
     model = load_model(MODEL_PATH)
     st.success("✅ Modell erfolgreich geladen!")
-except Exception as e:
+except (FileNotFoundError, OSError, RuntimeError, ValueError) as e:
     st.error(f"❌ Fehler beim Laden des Modells: {e}")
     st.stop()
 
