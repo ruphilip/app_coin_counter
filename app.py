@@ -1,7 +1,9 @@
 import streamlit as st
 import torch
-from PIL import Image
+from PIL import Image, ImageOps
 from ultralytics import YOLO
+
+
 
 # ============================================================
 # 1. STREAMLIT APP
@@ -119,7 +121,8 @@ else:
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
+    image = Image.open(uploaded_file)
+    image = ImageOps.exif_transpose(image).convert("RGB")
 
     st.divider()
 
@@ -135,6 +138,7 @@ if uploaded_file is not None:
         with st.spinner("🔍 Modell analysiert das Bild..."):
             results = model.predict(
                 source=image,
+                imagesz=960,
                 device=DEVICE,
                 conf=conf_threshold,
                 iou=iou_threshold,
