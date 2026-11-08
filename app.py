@@ -138,11 +138,11 @@ if uploaded_file is not None:
         with st.spinner("🔍 Modell analysiert das Bild..."):
             results = model.predict(
                 source=image,
-                imagesz=960,
+                imgsz=960,
                 device=DEVICE,
                 conf=conf_threshold,
                 iou=iou_threshold,
-                agnostic_nms=True,
+                #agnostic_nms=True,
                 verbose=False
             )
 
