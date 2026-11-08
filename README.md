@@ -1,70 +1,70 @@
-# 🪙 YOLO Münzzähler
+# 🪙 YOLO Coin Counter
 
-Eine Streamlit-Web-App, die mit einem selbst trainierten **YOLOv8-Modell** Schweizer Münzen auf Fotos erkennt, zählt und den **Gesamtbetrag in Franken** berechnet.
+A Streamlit web app that uses a custom-trained **YOLOv8 model** to detect and count Swiss coins in photos and calculate the **total amount in Swiss francs**.
 
-Du kannst ein Bild hochladen oder direkt mit der Kamera ein Foto aufnehmen. Die App zeichnet die erkannten Münzen ein und listet sie nach Münzart mit Anzahl und Teilbetrag auf.
+You can upload an image or take a photo directly with your camera. The app draws the detected coins onto the image and lists them by coin type with count and subtotal.
 
 ---
 
-## 📑 Inhaltsverzeichnis
+## 📑 Table of Contents
 
-- [Funktionen](#-funktionen)
-- [Das Modell](#-das-modell)
-- [Voraussetzungen](#-voraussetzungen)
-- [Projektstruktur](#-projektstruktur)
-- [Installation mit uv (empfohlen)](#-installation-mit-uv-empfohlen)
-- [Installation mit pip (Alternative)](#-installation-mit-pip-alternative)
-- [GPU-Beschleunigung](#-gpu-beschleunigung)
-- [App starten](#-app-starten)
-- [Bedienung](#-bedienung)
-- [Einstellungen im Detail](#-einstellungen-im-detail)
-- [Anpassungen](#-anpassungen)
+- [Features](#-features)
+- [The Model](#-the-model)
+- [Requirements](#-requirements)
+- [Project Structure](#-project-structure)
+- [Installation with uv (recommended)](#-installation-with-uv-recommended)
+- [Installation with pip (alternative)](#-installation-with-pip-alternative)
+- [GPU Acceleration](#-gpu-acceleration)
+- [Starting the App](#-starting-the-app)
+- [Usage](#-usage)
+- [Settings in Detail](#-settings-in-detail)
+- [Customization](#-customization)
 - [Deployment (Streamlit Community Cloud)](#-deployment-streamlit-community-cloud)
-- [Fehlerbehebung](#-fehlerbehebung)
-- [Tipps für bessere Ergebnisse](#-tipps-für-bessere-ergebnisse)
+- [Troubleshooting](#-troubleshooting)
+- [Tips for Better Results](#-tips-for-better-results)
 
 ---
 
-## ✨ Funktionen
+## ✨ Features
 
-- 📁 **Bild hochladen** (`.jpg`, `.jpeg`, `.png`) oder 📷 **Foto mit der Kamera aufnehmen**
-- 🔍 **Münzerkennung** mit einem eigenen YOLOv8-Modell (`best.pt`)
-- 💰 **Automatische Summenberechnung** für alle erkannten Münzen
-- 📊 **Aufschlüsselung** nach Münzart mit Anzahl und Teilbetrag
-- 🎚️ **Einstellbarer Konfidenz-Schwellenwert** über die Sidebar
-- ⚡ **Automatische Geräteauswahl:** CUDA (NVIDIA) → MPS (Apple Silicon) → CPU
+- 📁 **Upload an image** (`.jpg`, `.jpeg`, `.png`) or 📷 **take a photo with the camera**
+- 🔍 **Coin detection** with a custom YOLOv8 model (`best.pt`)
+- 💰 **Automatic total calculation** for all detected coins
+- 📊 **Breakdown** by coin type with count and subtotal
+- 🎚️ **Adjustable confidence threshold** via the sidebar
+- ⚡ **Automatic device selection:** CUDA (NVIDIA) → MPS (Apple Silicon) → CPU
 
-### Unterstützte Münzen
+### Supported Coins
 
-| Klasse | Wert |
+| Class | Value |
 |---|---|
-| `5 Rappen` | 0.05 Fr. |
-| `10 Rappen` | 0.10 Fr. |
-| `20 Rappen` | 0.20 Fr. |
-| `50 Rappen` | 0.50 Fr. |
-| `1 Franken` | 1.00 Fr. |
-| `2 Franken` | 2.00 Fr. |
-| `5 Franken` | 5.00 Fr. |
+| `5 Rappen` | 0.05 CHF |
+| `10 Rappen` | 0.10 CHF |
+| `20 Rappen` | 0.20 CHF |
+| `50 Rappen` | 0.50 CHF |
+| `1 Franken` | 1.00 CHF |
+| `2 Franken` | 2.00 CHF |
+| `5 Franken` | 5.00 CHF |
 
-> ⚠️ Die Klassennamen des Modells müssen **exakt** den Schlüsseln im `COIN_VALUES`-Dictionary in `app.py` entsprechen. Klassen, die dort nicht vorkommen, werden zwar erkannt, zählen aber mit 0.00 Fr. und werden in der Auflistung entsprechend markiert.
+> ⚠️ The model's class names must **exactly** match the keys in the `COIN_VALUES` dictionary in `app.py`. Classes that do not appear there are still detected, but count as 0.00 CHF and are marked accordingly in the list.
 
 ---
 
-## 🧠 Das Modell
+## 🧠 The Model
 
-Die mitgelieferte Datei `best.pt` (ca. 6 MB) ist ein mit Ultralytics trainiertes Objekterkennungsmodell.
+The included file `best.pt` (about 6 MB) is an object detection model trained with Ultralytics.
 
-| Eigenschaft | Wert |
+| Property | Value |
 |---|---|
-| **Aufgabe** | Objekterkennung (`detect`) |
-| **Basismodell** | `yolov8n.pt` (YOLOv8 Nano, klein und schnell) |
-| **Trainings-Epochen** | 80 |
-| **Trainiert mit** | Ultralytics 8.4.155 auf Apple Silicon (`mps`) |
-| **Anzahl Klassen** | 7 |
+| **Task** | Object detection (`detect`) |
+| **Base model** | `yolov8n.pt` (YOLOv8 Nano, small and fast) |
+| **Training epochs** | 80 |
+| **Trained with** | Ultralytics 8.4.155 on Apple Silicon (`mps`) |
+| **Number of classes** | 7 |
 
-**Klassen im Modell:**
+**Classes in the model:**
 
-| ID | Klasse |
+| ID | Class |
 |---|---|
 | 0 | `1 Franken` |
 | 1 | `10 Rappen` |
@@ -74,59 +74,59 @@ Die mitgelieferte Datei `best.pt` (ca. 6 MB) ist ein mit Ultralytics trainiertes
 | 5 | `5 Rappen` |
 | 6 | `50 Rappen` |
 
-Diese Namen stimmen mit den Schlüsseln in `COIN_VALUES` überein. Du kannst sie jederzeit selbst prüfen:
+These names match the keys in `COIN_VALUES`. You can verify them yourself at any time:
 
 ```bash
 uv run python -c "from ultralytics import YOLO; print(YOLO('best.pt').names)"
 ```
 
-> ℹ️ Ultralytics-Modelle stehen unter der **AGPL-3.0**-Lizenz. Beachte das, wenn du die App öffentlich anbietest oder weitergibst.
+> ℹ️ Ultralytics models are licensed under the **AGPL-3.0**. Keep this in mind if you offer the app publicly or distribute it.
 
 ---
 
-## 🧰 Voraussetzungen
+## 🧰 Requirements
 
-| Komponente | Anforderung |
+| Component | Requirement |
 |---|---|
-| **Python** | Version **3.12 oder neuer** (laut `pyproject.toml`) |
-| **Paketmanager** | [uv](https://docs.astral.sh/uv/) (empfohlen) oder pip |
-| **Modell** | `best.pt` im Projektordner |
-| **Betriebssystem** | Windows, macOS oder Linux |
-| **Hardware** | Läuft auf der CPU, schneller mit NVIDIA-GPU (CUDA) oder Apple Silicon (MPS) |
-| **Kamera** | Optional, nur für die Funktion „Foto aufnehmen“ |
-| **Linux-Systembibliotheken** | Siehe `packages.txt` (nur nötig auf Linux ohne Desktop, z. B. Server, Docker, Cloud) |
+| **Python** | Version **3.12 or newer** (per `pyproject.toml`) |
+| **Package manager** | [uv](https://docs.astral.sh/uv/) (recommended) or pip |
+| **Model** | `best.pt` in the project folder |
+| **Operating system** | Windows, macOS or Linux |
+| **Hardware** | Runs on the CPU, faster with an NVIDIA GPU (CUDA) or Apple Silicon (MPS) |
+| **Camera** | Optional, only needed for the "Take a photo" feature |
+| **Linux system libraries** | See `packages.txt` (only needed on Linux without a desktop, e.g. servers, Docker, cloud) |
 
 ---
 
-## 📂 Projektstruktur
+## 📂 Project Structure
 
 ```text
 app-coin-counter/
-├── app.py              # Die Streamlit-App
-├── best.pt             # Trainiertes YOLOv8-Modell
-├── pyproject.toml      # Projektdefinition und Abhängigkeiten (uv)
-├── uv.lock             # Exakt festgelegte Paketversionen (reproduzierbar)
-├── packages.txt        # System-Pakete für Linux / Streamlit Cloud (apt)
-└── README.md           # Diese Datei
+├── app.py              # The Streamlit app
+├── best.pt             # Trained YOLOv8 model
+├── pyproject.toml      # Project definition and dependencies (uv)
+├── uv.lock             # Pinned package versions (reproducible)
+├── packages.txt        # System packages for Linux / Streamlit Cloud (apt)
+└── README.md           # This file
 ```
 
-### Die Konfigurationsdateien im Überblick
+### The Configuration Files at a Glance
 
-| Datei | Zweck |
+| File | Purpose |
 |---|---|
-| `pyproject.toml` | Definiert den Projektnamen (`app-coin-counter`), verlangt Python ≥ 3.12 und listet die direkten Abhängigkeiten (`streamlit`, `ultralytics`). |
-| `uv.lock` | Hält die exakten Versionen aller Pakete fest, auch der indirekten wie `torch`, `torchvision`, `numpy`, `opencv-python` und `pillow`. So läuft die App bei allen identisch. |
-| `packages.txt` | Listet Linux-Systembibliotheken (`libgl1`, `libglib2.0-0`, `libsm6`, `libxext6`, `libxrender1`), die OpenCV braucht. Streamlit Community Cloud installiert sie automatisch per `apt`. |
+| `pyproject.toml` | Defines the project name (`app-coin-counter`), requires Python ≥ 3.12 and lists the direct dependencies (`streamlit`, `ultralytics`). |
+| `uv.lock` | Records the exact versions of all packages, including indirect ones such as `torch`, `torchvision`, `numpy`, `opencv-python` and `pillow`. This way the app behaves identically for everyone. |
+| `packages.txt` | Lists Linux system libraries (`libgl1`, `libglib2.0-0`, `libsm6`, `libxext6`, `libxrender1`) that OpenCV needs. Streamlit Community Cloud installs them automatically via `apt`. |
 
-> 💡 **Hinweis zu SAHI:** Die App nutzt SAHI nicht mehr. Falls `sahi` in deiner `pyproject.toml` noch unter `dependencies` steht, kannst du es entfernen: `uv remove sahi`. Das spart Installationszeit und hält die Umgebung schlank.
+> 💡 **Note on SAHI:** The app no longer uses SAHI. If `sahi` is still listed under `dependencies` in your `pyproject.toml`, you can remove it: `uv remove sahi`. This saves installation time and keeps the environment lean.
 
 ---
 
-## ⚡ Installation mit uv (empfohlen)
+## ⚡ Installation with uv (recommended)
 
-[uv](https://docs.astral.sh/uv/) ist ein schneller Python-Paketmanager. Er liest `pyproject.toml` und `uv.lock` und richtet die virtuelle Umgebung samt Python-Version automatisch ein.
+[uv](https://docs.astral.sh/uv/) is a fast Python package manager. It reads `pyproject.toml` and `uv.lock` and automatically sets up the virtual environment including the Python version.
 
-### 1. uv installieren
+### 1. Install uv
 
 **macOS / Linux**
 
@@ -140,60 +140,60 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Alternativ geht auch `pip install uv`. Prüfen kannst du die Installation mit:
+Alternatively, `pip install uv` also works. You can check the installation with:
 
 ```bash
 uv --version
 ```
 
-### 2. Projektordner vorbereiten
+### 2. Prepare the project folder
 
-Lege `app.py`, `best.pt`, `pyproject.toml`, `uv.lock` und `packages.txt` in einen gemeinsamen Ordner und wechsle hinein:
+Put `app.py`, `best.pt`, `pyproject.toml`, `uv.lock` and `packages.txt` into a common folder and change into it:
 
 ```bash
 cd app-coin-counter
 ```
 
-### 3. Abhängigkeiten installieren
+### 3. Install dependencies
 
 ```bash
 uv sync
 ```
 
-Dieser Befehl:
+This command:
 
-- legt automatisch eine virtuelle Umgebung in `.venv/` an,
-- lädt bei Bedarf Python 3.12 herunter,
-- installiert alle Pakete exakt in den Versionen aus `uv.lock`.
+- automatically creates a virtual environment in `.venv/`,
+- downloads Python 3.12 if needed,
+- installs all packages in the exact versions from `uv.lock`.
 
-> ⏳ Der erste Durchlauf kann einige Minuten dauern, weil PyTorch ein grosses Paket ist.
+> ⏳ The first run can take a few minutes because PyTorch is a large package.
 
-### 4. Systembibliotheken installieren (nur Linux)
+### 4. Install system libraries (Linux only)
 
-Auf einem Linux-System ohne grafische Oberfläche (Server, Container, WSL) fehlen oft Bibliotheken, die OpenCV benötigt. Typisches Symptom: `ImportError: libGL.so.1: cannot open shared object file`.
+On a Linux system without a graphical interface (server, container, WSL), libraries needed by OpenCV are often missing. Typical symptom: `ImportError: libGL.so.1: cannot open shared object file`.
 
-Installiere sie aus `packages.txt`:
+Install them from `packages.txt`:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y $(cat packages.txt)
 ```
 
-Auf **macOS** und **Windows** ist dieser Schritt nicht nötig.
+This step is not needed on **macOS** and **Windows**.
 
-### 5. Installation prüfen
+### 5. Verify the installation
 
 ```bash
 uv run python -c "import torch; print('CUDA:', torch.cuda.is_available()); print('MPS:', torch.backends.mps.is_available())"
 ```
 
-Die Ausgabe zeigt, welches Gerät die App verwenden kann. Wenn beide Werte `False` sind, läuft die App auf der CPU. Das funktioniert, ist aber langsamer.
+The output shows which device the app can use. If both values are `False`, the app runs on the CPU. That works, but is slower.
 
 ---
 
-## 🐍 Installation mit pip (Alternative)
+## 🐍 Installation with pip (alternative)
 
-Wenn du uv nicht verwenden möchtest, geht es auch klassisch mit einer virtuellen Umgebung (Python 3.12 oder neuer erforderlich).
+If you prefer not to use uv, you can also proceed the classic way with a virtual environment (Python 3.12 or newer required).
 
 **macOS / Linux**
 
@@ -209,91 +209,91 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-Dann die Pakete installieren:
+Then install the packages:
 
 ```bash
 pip install streamlit ultralytics
 ```
 
-`ultralytics` bringt `torch`, `torchvision`, `numpy`, `opencv-python` und `pillow` automatisch mit. Beachte, dass pip dabei **nicht** die Versionen aus `uv.lock` verwendet, sondern die jeweils aktuellsten. Für exakt reproduzierbare Ergebnisse ist uv besser geeignet.
+`ultralytics` automatically brings in `torch`, `torchvision`, `numpy`, `opencv-python` and `pillow`. Note that pip does **not** use the versions from `uv.lock` here, but the latest ones available. For exactly reproducible results, uv is the better choice.
 
 ---
 
-## 🖥️ GPU-Beschleunigung
+## 🖥️ GPU Acceleration
 
-Die App wählt das Gerät beim Start automatisch:
+The app selects the device automatically at startup:
 
 ```python
 if torch.cuda.is_available():
-    DEVICE = "cuda"      # NVIDIA-GPU
+    DEVICE = "cuda"      # NVIDIA GPU
 elif torch.backends.mps.is_available():
     DEVICE = "mps"       # Apple Silicon
 else:
     DEVICE = "cpu"
 ```
 
-| System | Was du tun musst |
+| System | What you need to do |
 |---|---|
-| 🍎 **Apple Silicon (M1 – M5)** | Nichts. MPS wird automatisch erkannt. |
-| 🐧 **Linux mit NVIDIA-GPU** | In der Regel nichts. Die Standard-PyTorch-Pakete enthalten CUDA. Ein aktueller NVIDIA-Treiber ist nötig. |
-| 🪟 **Windows mit NVIDIA-GPU** | Die Standardinstallation liefert oft nur die CPU-Version von PyTorch. Installiere die CUDA-Version: Den passenden Befehl für dein System erzeugt [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/). |
-| 💻 **Ohne GPU** | Nichts. Die App läuft auf der CPU. Das Modell ist klein (YOLOv8 Nano), daher ist das meist ausreichend schnell. |
+| 🍎 **Apple Silicon (M1 – M5)** | Nothing. MPS is detected automatically. |
+| 🐧 **Linux with NVIDIA GPU** | Usually nothing. The standard PyTorch packages include CUDA. A current NVIDIA driver is required. |
+| 🪟 **Windows with NVIDIA GPU** | The default installation often provides only the CPU version of PyTorch. Install the CUDA version: [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/) generates the right command for your system. |
+| 💻 **No GPU** | Nothing. The app runs on the CPU. The model is small (YOLOv8 Nano), so this is usually fast enough. |
 
-Beispiel für Windows mit uv (die CUDA-Version `cu128` kann bei dir abweichen):
+Example for Windows with uv (the CUDA version `cu128` may differ on your machine):
 
 ```bash
 uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 ```
 
-> ⚠️ Ein späteres `uv sync` kann diese Installation wieder durch die Standardversion ersetzen. Starte die App danach mit `uv run --no-sync streamlit run app.py`.
+> ⚠️ A later `uv sync` may replace this installation with the default version again. Afterwards, start the app with `uv run --no-sync streamlit run app.py`.
 
 ---
 
-## 🚀 App starten
+## 🚀 Starting the App
 
-**Mit uv:**
+**With uv:**
 
 ```bash
 uv run streamlit run app.py
 ```
 
-**Mit pip (virtuelle Umgebung aktiv):**
+**With pip (virtual environment active):**
 
 ```bash
 streamlit run app.py
 ```
 
-Der Browser öffnet sich automatisch. Falls nicht, rufe diese Adresse auf:
+The browser opens automatically. If it doesn't, open this address:
 
 ```text
 http://localhost:8501
 ```
 
-Zum Beenden drückst du im Terminal `Ctrl + C`.
+To stop the app, press `Ctrl + C` in the terminal.
 
-### Zugriff vom Smartphone im selben WLAN
+### Access from a smartphone on the same Wi-Fi
 
-Wenn du die Kamera deines Handys nutzen möchtest, kannst du die App im lokalen Netzwerk erreichbar machen:
+If you want to use your phone's camera, you can make the app reachable on the local network:
 
 ```bash
 uv run streamlit run app.py --server.address 0.0.0.0
 ```
 
-Rufe dann auf dem Handy `http://<IP-DEINES-COMPUTERS>:8501` auf.
+Then open `http://<YOUR-COMPUTER-IP>:8501` on your phone.
 
-> ℹ️ Browser erlauben den Kamerazugriff meist nur über `localhost` oder über eine verschlüsselte `https`-Verbindung. Falls die Kamera auf dem Handy nicht funktioniert, nutze stattdessen den Bild-Upload. Dort kannst du auf dem Handy ebenfalls ein Foto aufnehmen und hochladen.
+> ℹ️ Browsers usually only allow camera access via `localhost` or over an encrypted `https` connection. If the camera doesn't work on your phone, use the image upload instead. There you can also take a photo on your phone and upload it.
 
 ---
 
-## 🖱️ Bedienung
+## 🖱️ Usage
 
-1. **Konfidenz einstellen:** Passe in der Sidebar links den Schwellenwert an.
-2. **Bildquelle wählen:** Wähle zwischen „📁 Bild hochladen“ und „📷 Foto aufnehmen“.
-3. **Bild bereitstellen:** Lade ein Foto hoch oder fotografiere die Münzen.
-4. **Ergebnis ansehen:** Links siehst du das Originalbild, rechts das Bild mit den erkannten Münzen.
-5. **Auswertung lesen:** Unter den Bildern stehen der Gesamtbetrag und die Aufteilung nach Münzart.
+1. **Set the confidence:** Adjust the threshold in the sidebar on the left.
+2. **Choose the image source:** Pick "📁 Bild hochladen" (upload an image) or "📷 Foto aufnehmen" (take a photo).
+3. **Provide an image:** Upload a photo or photograph the coins.
+4. **View the result:** On the left you see the original image, on the right the image with the detected coins.
+5. **Read the evaluation:** Below the images you find the total amount and the breakdown by coin type.
 
-Beispiel für die Ausgabe:
+Example output (the app's interface is in German):
 
 ```text
 💰 Erkannter Gesamtbetrag: 4.30 Fr.
@@ -305,27 +305,29 @@ Aufteilung der erkannten Münzen:
 • 2x 5 Rappen (Wert: 0.10 Fr.)
 ```
 
+In English: "Detected total amount: 4.30 CHF" followed by the breakdown of detected coins with count and value.
+
 ---
 
-## 🎚️ Einstellungen im Detail
+## 🎚️ Settings in Detail
 
-### Konfidenz-Schwellenwert
+### Confidence threshold
 
-Legt fest, wie sicher sich das Modell mindestens sein muss, damit eine Erkennung gezählt wird. Der Regler reicht von 0.1 bis 1.0, der Startwert ist 0.25.
+Determines how certain the model must be at minimum for a detection to be counted. The slider ranges from 0.1 to 1.0, the default is 0.25.
 
-| Wert | Wirkung |
+| Value | Effect |
 |---|---|
-| **Niedrig** (z. B. 0.1 – 0.25) | Mehr Erkennungen, aber auch mehr Fehlerkennungen |
-| **Mittel** (z. B. 0.4 – 0.6) | Guter Kompromiss für die meisten Fälle |
-| **Hoch** (z. B. 0.7 – 1.0) | Nur sehr sichere Erkennungen, dafür können Münzen übersehen werden |
+| **Low** (e.g. 0.1 – 0.25) | More detections, but also more false detections |
+| **Medium** (e.g. 0.4 – 0.6) | Good compromise for most cases |
+| **High** (e.g. 0.7 – 1.0) | Only very confident detections, but coins may be missed |
 
 ---
 
-## 🔧 Anpassungen
+## 🔧 Customization
 
-### Eigene Münzklassen oder Währung
+### Custom coin classes or currency
 
-Passe das Dictionary `COIN_VALUES` in `app.py` an. Die Schlüssel müssen den Klassennamen in deinem trainierten Modell entsprechen.
+Adjust the `COIN_VALUES` dictionary in `app.py`. The keys must match the class names in your trained model.
 
 ```python
 COIN_VALUES = {
@@ -335,73 +337,73 @@ COIN_VALUES = {
 }
 ```
 
-### Anderes Modell verwenden
+### Using a different model
 
-Ändere in `app.py` die Variable `MODEL_PATH`:
+Change the `MODEL_PATH` variable in `app.py`:
 
 ```python
-MODEL_PATH = "pfad/zu/deinem/modell.pt"
+MODEL_PATH = "path/to/your/model.pt"
 ```
 
-### Gerät fest vorgeben
+### Setting the device manually
 
-Standardmässig wird das beste verfügbare Gerät gewählt. Du kannst es in `app.py` auch fest setzen:
+By default, the best available device is chosen. You can also set it explicitly in `app.py`:
 
 ```python
-DEVICE = "cpu"   # oder "cuda" bzw. "mps"
+DEVICE = "cpu"   # or "cuda" / "mps"
 ```
 
 ---
 
 ## ☁️ Deployment (Streamlit Community Cloud)
 
-Die App lässt sich auf der [Streamlit Community Cloud](https://streamlit.io/cloud) veröffentlichen:
+The app can be published on the [Streamlit Community Cloud](https://streamlit.io/cloud):
 
-1. Lade `app.py`, `best.pt`, `pyproject.toml`, `uv.lock`, `packages.txt` und `README.md` in ein GitHub-Repository.
-2. Wähle dort **New app**, das Repository und `app.py` als Hauptdatei.
-3. Die Plattform installiert die Python-Pakete aus `pyproject.toml` / `uv.lock` und die Systembibliotheken aus `packages.txt` automatisch.
+1. Upload `app.py`, `best.pt`, `pyproject.toml`, `uv.lock`, `packages.txt` and `README.md` to a GitHub repository.
+2. There, choose **New app**, select the repository and `app.py` as the main file.
+3. The platform automatically installs the Python packages from `pyproject.toml` / `uv.lock` and the system libraries from `packages.txt`.
 
-> ⚠️ Auf der Cloud steht in der Regel nur die **CPU** zur Verfügung. Das kleine Nano-Modell läuft dort aber problemlos. Ausserdem gilt für `st.camera_input`: Die Kamera funktioniert im Browser, weil die Cloud-Adresse über `https` läuft.
+> ⚠️ In the cloud, usually only the **CPU** is available. The small Nano model runs there without problems, though. Also note for `st.camera_input`: the camera works in the browser because the cloud address uses `https`.
 
 ---
 
-## 🩹 Fehlerbehebung
+## 🩹 Troubleshooting
 
-| Problem | Mögliche Ursache und Lösung |
+| Problem | Possible cause and solution |
 |---|---|
-| `❌ Fehler beim Laden des Modells` | `best.pt` fehlt oder liegt nicht neben `app.py`. Prüfe den Pfad in `MODEL_PATH`. |
-| `ImportError: libGL.so.1: cannot open shared object file` | Auf Linux fehlen Systembibliotheken für OpenCV. Installiere sie mit `sudo apt-get install -y $(cat packages.txt)`. |
-| `ModuleNotFoundError: No module named ...` | Die Umgebung ist nicht aktiv oder `uv sync` wurde nicht ausgeführt. Starte die App mit `uv run streamlit run app.py`. |
-| `requires-python`-Fehler bei der Installation | Deine Python-Version ist älter als 3.12. uv lädt die passende Version automatisch, mit pip musst du Python selbst aktualisieren. |
-| `torch.cuda.is_available()` ist `False` trotz NVIDIA-GPU | Es ist die CPU-Version von PyTorch installiert (häufig unter Windows). Installiere die CUDA-Version von [pytorch.org](https://pytorch.org/get-started/locally/) und aktualisiere deinen NVIDIA-Treiber. |
-| MPS-Fehler auf dem Mac | Aktualisiere PyTorch und ultralytics (`uv lock --upgrade && uv sync`). Als Notlösung setze `DEVICE = "cpu"`. |
-| Keine Münzen erkannt | Senke den Konfidenz-Schwellenwert, verbessere Licht und Bildqualität oder prüfe, ob das Modell auf ähnlichen Bildern trainiert wurde. |
-| Falsche Münzen erkannt | Erhöhe den Konfidenz-Schwellenwert. |
-| Kamera funktioniert nicht | Erlaube dem Browser den Kamerazugriff. Auf anderen Geräten im Netzwerk geht das oft nur über `https`. Nutze alternativ den Bild-Upload. |
-| Klasse „nicht im COIN_VALUES Dictionary definiert“ | Der Klassenname des Modells stimmt nicht mit einem Schlüssel in `COIN_VALUES` überein. Gleiche die Schreibweise an. |
-| Port 8501 ist belegt | Starte mit einem anderen Port: `uv run streamlit run app.py --server.port 8502` |
+| `❌ Fehler beim Laden des Modells` (error loading the model) | `best.pt` is missing or not located next to `app.py`. Check the path in `MODEL_PATH`. |
+| `ImportError: libGL.so.1: cannot open shared object file` | System libraries for OpenCV are missing on Linux. Install them with `sudo apt-get install -y $(cat packages.txt)`. |
+| `ModuleNotFoundError: No module named ...` | The environment is not active or `uv sync` was not run. Start the app with `uv run streamlit run app.py`. |
+| `requires-python` error during installation | Your Python version is older than 3.12. uv downloads the right version automatically; with pip you have to update Python yourself. |
+| `torch.cuda.is_available()` is `False` despite an NVIDIA GPU | The CPU version of PyTorch is installed (common on Windows). Install the CUDA version from [pytorch.org](https://pytorch.org/get-started/locally/) and update your NVIDIA driver. |
+| MPS error on Mac | Update PyTorch and ultralytics (`uv lock --upgrade && uv sync`). As a workaround, set `DEVICE = "cpu"`. |
+| No coins detected | Lower the confidence threshold, improve lighting and image quality, or check whether the model was trained on similar images. |
+| Wrong coins detected | Raise the confidence threshold. |
+| Camera doesn't work | Allow the browser to access the camera. On other devices in the network this often only works via `https`. Alternatively, use the image upload. |
+| Class "not defined in the COIN_VALUES dictionary" | The model's class name doesn't match any key in `COIN_VALUES`. Align the spelling. |
+| Port 8501 is in use | Start with a different port: `uv run streamlit run app.py --server.port 8502` |
 
 ---
 
-## 📸 Tipps für bessere Ergebnisse
+## 📸 Tips for Better Results
 
-- 💡 **Gutes, gleichmässiges Licht** ohne harte Schatten oder Spiegelungen auf den Münzen
-- 🎨 **Einfarbiger, kontrastreicher Hintergrund** (z. B. ein dunkles Tuch oder helles Papier)
-- 📐 **Von oben fotografieren**, möglichst senkrecht zur Unterlage
-- ↔️ **Münzen nicht übereinanderlegen**, damit keine verdeckt wird
-- 🔎 **Nah genug herangehen**, damit die Münzen im Bild gross genug sind
-- 🧪 **Schwellenwert ausprobieren:** Die Konfidenz lässt sich live in der Sidebar anpassen
+- 💡 **Good, even lighting** without harsh shadows or reflections on the coins
+- 🎨 **Plain, high-contrast background** (e.g. a dark cloth or light paper)
+- 📐 **Shoot from above**, as perpendicular to the surface as possible
+- ↔️ **Don't stack coins on top of each other**, so none is hidden
+- 🔎 **Get close enough** so the coins appear large enough in the image
+- 🧪 **Experiment with the threshold:** the confidence can be adjusted live in the sidebar
 
 ---
 
-## 🧱 Verwendete Technologien
+## 🧱 Technologies Used
 
-| Technologie | Version (laut `uv.lock`) | Zweck |
+| Technology | Version (per `uv.lock`) | Purpose |
 |---|---|---|
-| [Streamlit](https://streamlit.io/) | 1.66.0 | Weboberfläche |
-| [Ultralytics YOLOv8](https://docs.ultralytics.com/) | 8.4.182 | Objekterkennung |
-| [PyTorch](https://pytorch.org/) | 2.14.1 | Deep-Learning-Backend |
-| [OpenCV](https://opencv.org/) | 5.0.0.93 | Bildverarbeitung (von Ultralytics genutzt) |
-| [Pillow](https://python-pillow.org/) | 12.3.0 | Bildverarbeitung in der App |
-| [NumPy](https://numpy.org/) | 2.5.4 | Numerische Berechnungen |
-| [uv](https://docs.astral.sh/uv/) | – | Paket- und Umgebungsverwaltung |
+| [Streamlit](https://streamlit.io/) | 1.66.0 | Web interface |
+| [Ultralytics YOLOv8](https://docs.ultralytics.com/) | 8.4.182 | Object detection |
+| [PyTorch](https://pytorch.org/) | 2.14.1 | Deep learning backend |
+| [OpenCV](https://opencv.org/) | 5.0.0.93 | Image processing (used by Ultralytics) |
+| [Pillow](https://python-pillow.org/) | 12.3.0 | Image processing in the app |
+| [NumPy](https://numpy.org/) | 2.5.4 | Numerical computing |
+| [uv](https://docs.astral.sh/uv/) | – | Package and environment management |
