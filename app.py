@@ -23,10 +23,23 @@ st.write(
 
 
 # ============================================================
-# 2. MODELL & GERÄT
+# 2. MODELL, GERÄT & GRENZWERTE
 # ============================================================
 
 MODEL_PATH = "best.pt"
+
+# Muss identisch zum Training sein (IMG_SIZE im Trainingsskript)
+TRAIN_IMGSZ = 960
+PREDICT_IMGSZ = TRAIN_IMGSZ
+
+# Münzgrösse in Pixeln, NACHDEM das Bild auf PREDICT_IMGSZ skaliert wurde.
+# Werte aus der Messung der Trainingsdaten bei imgsz=960:
+# 10%-Perzentil = 60 px, Median = 109 px, 90%-Perzentil = 186 px
+MIN_COIN_PX = 100
+MAX_COIN_PX = 250
+
+# Unter dieser Konfidenz wird eine Erkennung als unsicher markiert
+LOW_CONF = 0.60
 
 # CUDA wenn verfügbar, sonst MPS (Apple Silicon) wenn verfügbar, sonst CPU
 if torch.cuda.is_available():
@@ -76,6 +89,19 @@ iou_threshold = st.sidebar.slider(
          "Kleiner = aggressiveres Entfernen."
 )
 
+agnostic = st.sidebar.checkbox(
+    "Klassen-unabhängige NMS (agnostic)",
+    value=True,
+    help="An: pro Position bleibt nur eine Klasse. "
+         "Aus: überlappende Boxen mit verschiedenen Klassen bleiben erhalten (gut zum Debuggen)."
+)
+
+st.sidebar.caption(
+    f"Modell-Auflösung: {PREDICT_IMGSZ} px\n\n"
+    f"Min. Münzgrösse: {MIN_COIN_PX} px\n\n"
+    f"Unsicher unter: {LOW_CONF:.0%}"
+)
+
 
 # ============================================================
 # 5. MODELL LADEN
@@ -100,6 +126,12 @@ except (FileNotFoundError, OSError, RuntimeError, ValueError) as e:
 
 st.subheader("📷 Bild auswählen")
 
+st.info(
+    "💡 Tipp für beste Ergebnisse: Münzen auf einen hellen, einfarbigen "
+    "Untergrund legen, von oben fotografieren (Rückkamera) und genug nah "
+    "herangehen, sodass die Münzen gut sichtbar sind."
+)
+
 input_method = st.radio(
     "Wie möchtest du das Bild bereitstellen?",
     ["📁 Bild hochladen", "📷 Foto aufnehmen"],
@@ -115,7 +147,6 @@ if input_method == "📁 Bild hochladen":
     )
 else:
     uploaded_file = st.camera_input("📷 Münzen fotografieren")
-
 
 
 # ============================================================
@@ -145,11 +176,11 @@ if uploaded_file is not None:
         with st.spinner("🔍 Modell analysiert das Bild..."):
             results = model.predict(
                 source=image,
-                imgsz=960,
+                imgsz=PREDICT_IMGSZ,
                 device=DEVICE,
                 conf=conf_threshold,
                 iou=iou_threshold,
-                agnostic_nms=True,
+                agnostic_nms=agnostic,
                 verbose=False
             )
 
@@ -177,12 +208,31 @@ if uploaded_file is not None:
         st.info("Keine Münzen erkannt.")
 
     else:
-        detected_coins_summary = {}
-        confidences = {}  # Klasse -> Liste der Konfidenzen
-        for box in detections:
+        confidences = {}   # Klasse -> Liste der Konfidenzen
+        small_coins = []   # (Nr., Klasse, Pixelgrösse)
+        large_coins = []   # (Nr., Klasse, Pixelgrösse)
+        unsure_coins = []  # (Nr., Klasse, Konfidenz)
+
+        # So stark wurde das Bild für das Modell verkleinert/vergrössert
+        img_w, img_h = image.size
+        scale = PREDICT_IMGSZ / max(img_w, img_h)
+
+        for i, box in enumerate(detections, start=1):
             class_id = int(box.cls[0])
             class_name = model.names[class_id]
             conf = float(box.conf[0])
+
+            # Boxgrösse in Pixeln, so wie das Modell sie sieht
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            coin_px = max(x2 - x1, y2 - y1) * scale
+
+            if coin_px < MIN_COIN_PX:
+                small_coins.append((i, class_name, coin_px))
+            elif coin_px > MAX_COIN_PX:
+                large_coins.append((i, class_name, coin_px))
+
+            if conf < LOW_CONF:
+                unsure_coins.append((i, class_name, conf))
 
             detected_coins_summary[class_name] = (
                 detected_coins_summary.get(class_name, 0) + 1
@@ -191,6 +241,38 @@ if uploaded_file is not None:
 
             total_amount += COIN_VALUES.get(class_name, 0.0)
 
+        # ---- Warnungen (vor dem Gesamtbetrag anzeigen) ----
+        if small_coins:
+            details = ", ".join(
+                f"#{i} ({name}, ca. {px:.0f} px)" for i, name, px in small_coins
+            )
+            st.warning(
+                f"⚠️ {len(small_coins)} Münze(n) sind zu klein für eine "
+                f"zuverlässige Erkennung (Minimum: {MIN_COIN_PX} px): {details}. "
+                f"Bitte näher an die Münzen herangehen oder das Bild zuschneiden."
+            )
+
+        if large_coins:
+            details = ", ".join(
+                f"#{i} ({name}, ca. {px:.0f} px)" for i, name, px in large_coins
+            )
+            st.warning(
+                f"⚠️ {len(large_coins)} Münze(n) sind ungewöhnlich gross "
+                f"(über {MAX_COIN_PX} px): {details}. "
+                f"Das Modell kennt solche Grössen kaum, bitte etwas weiter weg fotografieren."
+            )
+
+        if unsure_coins:
+            details = ", ".join(
+                f"#{i} ({name}, {c:.0%})" for i, name, c in unsure_coins
+            )
+            st.warning(
+                f"⚠️ {len(unsure_coins)} Erkennung(en) sind unsicher "
+                f"(Konfidenz unter {LOW_CONF:.0%}): {details}. "
+                f"Bitte das Ergebnis kontrollieren."
+            )
+
+        # ---- Ergebnis ----
         st.metric(
             label="💰 Erkannter Gesamtbetrag",
             value=f"{total_amount:.2f} Fr."
