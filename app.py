@@ -1,9 +1,11 @@
 import streamlit as st
 import torch
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
 from ultralytics import YOLO
 
-
+# HEIC-Support für iPhone-Fotos aktivieren
+register_heif_opener()
 
 # ============================================================
 # 1. STREAMLIT APP
@@ -109,10 +111,11 @@ uploaded_file = None
 if input_method == "📁 Bild hochladen":
     uploaded_file = st.file_uploader(
         "Wähle ein Bild aus...",
-        type=["jpg", "jpeg", "png"]
+        type=["jpg", "jpeg", "png", "heic", "heif"]
     )
 else:
     uploaded_file = st.camera_input("📷 Münzen fotografieren")
+
 
 
 # ============================================================
@@ -122,7 +125,11 @@ else:
 if uploaded_file is not None:
 
     image = Image.open(uploaded_file)
-    image = ImageOps.exif_transpose(image).convert("RGB")
+    try:
+        image = ImageOps.exif_transpose(image)
+    except Exception:
+        pass
+    image = image.convert("RGB")
 
     st.divider()
 
@@ -142,7 +149,7 @@ if uploaded_file is not None:
                 device=DEVICE,
                 conf=conf_threshold,
                 iou=iou_threshold,
-                #agnostic_nms=True,
+                agnostic_nms=True,
                 verbose=False
             )
 
